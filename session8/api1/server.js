@@ -1,78 +1,72 @@
+
+
+
 var fs = require('fs');
-
-var data = fs.readFileSync('words.json');
-
-var words = JSON.parse(data);
-
-console.log(words);
-
-
-
-console.log('server is staring');
-
 var express = require('express');
 
+
+var data = fs.readFileSync("words.json");
+// var words = {};
+words = JSON.parse(data);
+
+
 var app = express();
-
-var server = app.listen(3000, listening);
-
-function listening() {
-  console.log("listening...");
-}
-
 app.use(express.static('website'));
 
-app.get('/add/:word/:score?', addWord);
+var server = app.listen(3000, listen);
+
+function listen() {
+  var host = server.address().address;
+  var port = server.address().port;
+  console.log('Example app listening at http://' + host + ':' + port);
+  console.log('CTRL-C to quit server');
+}
+
+// Set up a route
+app.get('/search/:word/', searchWord);
+
+function searchWord(request, response) {
+  var txt = request.params.word;
+  var reply;
+  if (words[txt]) {
+    reply = {
+      msg: "found it",
+      score: words[txt]
+    }
+  } else {
+    reply = {
+      msg: "did not find it"
+    }
+  }
+  response.send(reply);
+}
+
+
+
+// Set up a route
+app.get('/add/:word/:score', addWord);
 
 function addWord(request, response) {
   var data = request.params;
-  var word = data.word;
-  var score = Number(data.score);
-  if (!score){
+  words[data.word] = data.score;
+
+  var json = JSON.stringify(words, null, 2);
+  fs.writeFile('words.json', json, finished);
+
+  function finished() {
     var reply = {
-      msg: "Score is required."
+      status: "success",
+      word: data.word,
+      score: data.score
     }
     response.send(reply);
-  } else {
-    words[word] = score;
-    var data = JSON.stringify(words, null, 2);
-    fs.writeFile('words.json', data, finished);
-    function finished(err) {
-      console.log('all set.');
-      var reply = {
-        word: word,
-        score: score,
-        status: "success"
-      }
-      response.send(reply);
-    }
+    console.log('finished saving file!');
   }
+
 }
 
-app.get('/all', sendAll);
+app.get('/all', getAll);
 
-function sendAll(request, response) {
+function getAll(request, response) {
   response.send(words);
-}
-
-app.get('/search/:word/', searchWord);
-
-function searchWord(request, response){
-  var word = request.params.word;
-  var reply;
-  if (words[word]) {
-    reply = {
-      status: "found",
-      word: word,
-      score: words[word]
-    }
-  } else {
-    reply = {
-      status: "not found",
-      word: word,
-      score: words[word]
-    }
-  }
-
-  response.send(reply);
 }
